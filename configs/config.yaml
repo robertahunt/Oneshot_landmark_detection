@@ -5,9 +5,9 @@ dataset:
   name: 'phorid_wings'
   pth: '/home/ngw861/06_phorid_wings/data/Wings/'
 training:
-  batch_size : 2
+  batch_size : 32
   num_workers : 8
-  num_landmarks : 19
+  num_landmarks : 32
   lr : 0.00001
   decay_step : 50
   decay_gamma : 0.8
@@ -19,5 +19,5 @@ training:
   non_local: True
   conf: False
   patch_size: 256
-  cuda: False
+  cuda: True
   debug: False
