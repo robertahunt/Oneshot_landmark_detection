@@ -2,9 +2,10 @@ base:
   base_dir: '../runs/'
   experiment: 'std'
 dataset:
-  pth: '/home1/quanquan/datasets/Cephalometric/'
+  name: 'phorid_wings'
+  pth: '/home/ngw861/06_phorid_wings/data/Wings/'
 training:
-  batch_size : 8
+  batch_size : 2
   num_workers : 8
   num_landmarks : 19
   lr : 0.00001
@@ -18,3 +19,5 @@ training:
   non_local: True
   conf: False
   patch_size: 256
+  cuda: False
+  debug: False

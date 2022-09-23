@@ -25,7 +25,7 @@ def augment_patch(tensor, aug_transform):
     return aug_image
 
 
-class Cephalometric(data.Dataset):
+class PhoridWings(data.Dataset):
     def __init__(
         self,
         pathDataset,
@@ -52,9 +52,8 @@ class Cephalometric(data.Dataset):
         if retfunc > 0:
             print("Using new ret Function!")
             self.new_ret = True
-        self.pth_Image = os.path.join(pathDataset, "RawImage")
-        self.pth_label_junior = os.path.join(pathDataset, "400_junior")
-        self.pth_label_senior = os.path.join(pathDataset, "400_senior")
+        self.pth_Image = os.path.join(pathDataset, "00_images")
+        self.pth_label = os.path.join(pathDataset, "00_landmarks")
         self.patch_size = patch_size
         self.pre_crop = pre_crop
         self.ref_landmark = ref_landmark
@@ -69,15 +68,15 @@ class Cephalometric(data.Dataset):
         if mode == "Oneshot":
             self.pth_Image = os.path.join(self.pth_Image, "TrainingData")
             start = 1
-            end = 150
+            end = 100
         elif mode == "Test1":
             self.pth_Image = os.path.join(self.pth_Image, "Test1Data")
-            start = 151
-            end = 300
+            start = 101
+            end = 200
         else:
             self.pth_Image = os.path.join(self.pth_Image, "Test2Data")
-            start = 301
-            end = 400
+            start = 201
+            end = 328
 
         self.pre_trans = transforms.Compose(
             [transforms.RandomCrop((int(2400 * 0.8), int(1935 * 0.8)))]
@@ -407,13 +406,13 @@ class Cephalometric(data.Dataset):
         return len(self.list)
 
 
-def test_Ce_img():
+def test_Ph_img():
     from utils import visualize
     from tqdm import tqdm
 
     # hamming_set(9, 100)
 
-    test = Cephalometric("../../dataset/Cephalometric", "Train", pre_crop=True)
+    test = PhoridWings("../../dataset/Cephalometric", "Train", pre_crop=True)
     for i in tqdm(range(2, 3)):
         # item, crop_imgs, chosen_y, chosen_x, raw_y, raw_x = test.__getitem__(i)
         item, crop_imgs, chosen_y, chosen_x, raw_y, raw_x = test.retfunc2(i)
@@ -435,12 +434,12 @@ def test_Ce_img():
     print("pass")
 
 
-class Test_Cephalometric(data.Dataset):
+class Test_PhoridWings(data.Dataset):
     def __init__(
-        self, pathDataset, mode, size=[384, 384], id_oneshot=126, pre_crop=False
+        self, pathDataset, mode, size=[384, 384], id_oneshot=1, pre_crop=False
     ):
 
-        self.num_landmark = 19
+        self.num_landmark = 32
         self.size = size
         if pre_crop:
             self.size[0] = 480  # int(size[0] / 0.8)
@@ -448,9 +447,8 @@ class Test_Cephalometric(data.Dataset):
         print("The sizes are set as ", self.size)
         self.original_size = [2400, 1935]
 
-        self.pth_Image = os.path.join(pathDataset, "RawImage")
-        self.pth_label_junior = os.path.join(pathDataset, "400_junior")
-        self.pth_label_senior = os.path.join(pathDataset, "400_senior")
+        self.pth_Image = os.path.join(pathDataset, "00_images")
+        self.pth_landmarks = os.path.join(pathDataset, "00_landmarks")
 
         self.list = list()
 
@@ -462,19 +460,19 @@ class Test_Cephalometric(data.Dataset):
         elif mode == "Fewshots":
             self.pth_Image = os.path.join(self.pth_Image, "TrainingData")
             start = 1
-            end = int(150 * 0.25)
+            end = int(100 * 0.25)
         elif mode == "Train":
             self.pth_Image = os.path.join(self.pth_Image, "TrainingData")
             start = 1
-            end = 150
+            end = 100
         elif mode == "Test1":
             self.pth_Image = os.path.join(self.pth_Image, "Test1Data")
-            start = 151
-            end = 300
+            start = 101
+            end = 200
         else:
             self.pth_Image = os.path.join(self.pth_Image, "Test2Data")
-            start = 301
-            end = 400
+            start = 201
+            end = 328
 
         normalize = transforms.Normalize([0], [1])
         transformList = []
@@ -505,9 +503,7 @@ class Test_Cephalometric(data.Dataset):
 
     def resize_landmark(self, landmark):
         for i in range(len(landmark)):
-            landmark[i] = int(
-                landmark[i] * self.size[1 - i] / self.original_size[1 - i]
-            )
+            landmark[i] = int(landmark[i] * self.size[i] / self.original_size[i])
         return landmark
 
     def __getitem__(self, index):
@@ -520,16 +516,11 @@ class Test_Cephalometric(data.Dataset):
             # print("??2,", item['image'].shape)
 
         landmark_list = list()
-        with open(os.path.join(self.pth_label_junior, item["ID"] + ".txt")) as f1:
-            with open(os.path.join(self.pth_label_senior, item["ID"] + ".txt")) as f2:
-                for i in range(self.num_landmark):
-                    landmark1 = f1.readline().split()[0].split(",")
-                    landmark2 = f2.readline().split()[0].split(",")
-                    landmark = [
-                        int(0.5 * (int(landmark1[i]) + int(landmark2[i])))
-                        for i in range(len(landmark1))
-                    ]
-                    landmark_list.append(self.resize_landmark(landmark))
+        with open(os.path.join(self.pth_landmarks, item["ID"] + ".txt")) as f1:
+            for i in range(self.num_landmark):
+                landmark = f1.readline().split()[0].split(",")
+                landmark = [int(x) for x in landmark]
+                landmark_list.append(self.resize_landmark(landmark))
 
         if self.mode not in ["Oneshot", "Fewshots"]:
             # print("??, ", item['image'].shape)
@@ -552,9 +543,7 @@ class Test_Cephalometric(data.Dataset):
 
 
 def test_head_set():
-    dataset = Test_Cephalometric(
-        "../../dataset/Cephalometric/", mode="Oneshot", pre_crop=True
-    )
+    dataset = Test_PhoridWings("../../data/Wings/", mode="Oneshot", pre_crop=True)
     item, landmark_list, template_patches = dataset.__getitem__(0)
     import ipdb
 
@@ -565,16 +554,16 @@ def test_prob_map():
     from utils import visualize
 
     id_oneshot = 126
-    testset = Test_Cephalometric(
-        "../../dataset/Cephalometric/",
+    testset = Test_PhoridWings(
+        "../../data/Wings/",
         mode="Oneshot",
         pre_crop=False,
         id_oneshot=id_oneshot,
     )
     # item, landmark_list, template_patches = testset.__getitem__(0)
     landmark_list = testset.ref_landmarks(0)
-    trainset = Cephalometric(
-        "../../dataset/Cephalometric/",
+    trainset = PhoridWings(
+        "../../data/Wings/",
         mode="Oneshot",
         pre_crop=False,
         ref_landmark=landmark_list,
