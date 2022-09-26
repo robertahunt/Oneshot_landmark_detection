@@ -5,7 +5,7 @@ dataset:
   name: 'phorid_wings'
   pth: '/home/ngw861/06_phorid_wings/data/Wings/'
 training:
-  batch_size : 32
+  batch_size : 4
   num_workers : 8
   num_landmarks : 32
   lr : 0.00001
